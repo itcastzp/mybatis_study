@@ -21,16 +21,20 @@ import java.util.concurrent.locks.ReadWriteLock;
 
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.cache.CacheException;
+import org.apache.ibatis.cache.CacheKey;
 
-/**
+/**永久缓存对象
+ * 缓存的实现类。
  * @author Clinton Begin
  */
 public class PerpetualCache implements Cache {
 
+  //缓存的唯一id
   private final String id;
+  //真正存储的缓存通过hashmap存储。
+  private final Map<Object, Object> cache = new HashMap<>();
 
-  private Map<Object, Object> cache = new HashMap<>();
-
+  //只有一个id构造函数，保证了构造的缓存必须有id存在。
   public PerpetualCache(String id) {
     this.id = id;
   }
@@ -45,6 +49,11 @@ public class PerpetualCache implements Cache {
     return cache.size();
   }
 
+
+  /**
+   * @param key   Can be any object but usually it is a {@link CacheKey}
+   * @param value The result of a select.
+   */
   @Override
   public void putObject(Object key, Object value) {
     cache.put(key, value);
@@ -70,6 +79,12 @@ public class PerpetualCache implements Cache {
     return null;
   }
 
+
+  /**
+   * 两个缓存对象如果地址相等就是 同一个缓存，此外如果两个缓存的id一样，也算作同一缓存
+   * @param o
+   * @return
+   */
   @Override
   public boolean equals(Object o) {
     if (getId() == null) {
@@ -86,6 +101,10 @@ public class PerpetualCache implements Cache {
     return getId().equals(otherCache.getId());
   }
 
+  /**
+   * 使用id的hashcode作为缓存对象的hashcode
+   * @return
+   */
   @Override
   public int hashCode() {
     if (getId() == null) {
