@@ -37,6 +37,12 @@ public final class PropertyCopier {
           try {
             field.set(destinationBean, field.get(sourceBean));
           } catch (IllegalAccessException e) {
+            //此处通过调用jdk自带的权限检验，以防止出错。如果反射可以控制属性，才会设置通过。
+            /**
+             * @see java.lang.reflect.AccessibleObject#setAccessible(boolean)
+             * @see SecurityManager#checkPermission
+             * @see java.lang.RuntimePermission
+             * */
             if (Reflector.canControlMemberAccessible()) {
               field.setAccessible(true);
               field.set(destinationBean, field.get(sourceBean));

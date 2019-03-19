@@ -20,6 +20,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.ibatis.cache.Cache;
 
 /**
+ * 计划型缓存。
  * @author Clinton Begin
  */
 public class ScheduledCache implements Cache {
@@ -87,6 +88,9 @@ public class ScheduledCache implements Cache {
     return delegate.equals(obj);
   }
 
+  /*
+  * 清除陈旧的map
+  * */
   private boolean clearWhenStale() {
     if (System.currentTimeMillis() - lastClear > clearInterval) {
       clear();

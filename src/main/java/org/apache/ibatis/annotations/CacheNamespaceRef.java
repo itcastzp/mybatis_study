@@ -23,8 +23,10 @@ import java.lang.annotation.Target;
 
 /**
  * The annotation that reference a cache.
+ * 引用缓存的注释。
  * <p>
  * If you use this annotation, should be specified either {@link #value()} or {@link #name()} attribute.
+ * 如果使用此批注，则应指定{@link #value（）}或{@link #name（）}属性。
  * </p>
  * @author Clinton Begin
  * @author Kazuki Shimizu
@@ -36,6 +38,7 @@ public @interface CacheNamespaceRef {
 
   /**
    * A namespace type to reference a cache (the namespace name become a FQCN of specified type).
+   * 用于引用缓存的命名空间类型（命名空间名称成为指定类型Full_Qualified_Class_Name）。
    */
   Class<?> value() default void.class;
 

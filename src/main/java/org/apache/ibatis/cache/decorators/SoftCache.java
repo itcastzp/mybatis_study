@@ -30,7 +30,9 @@ import org.apache.ibatis.cache.Cache;
  * @author Clinton Begin
  */
 public class SoftCache implements Cache {
+  //硬链接避免垃圾收集
   private final Deque<Object> hardLinksToAvoidGarbageCollection;
+  //垃圾收集条目队列
   private final ReferenceQueue<Object> queueOfGarbageCollectedEntries;
   private final Cache delegate;
   private int numberOfHardLinks;
@@ -67,7 +69,7 @@ public class SoftCache implements Cache {
   @Override
   public Object getObject(Object key) {
     Object result = null;
-    @SuppressWarnings("unchecked") // assumed delegate cache is totally managed by this cache
+    @SuppressWarnings("unchecked") //假定委托缓存完全由此缓存管理 assumed delegate cache is totally managed by this cache
     SoftReference<Object> softReference = (SoftReference<Object>) delegate.getObject(key);
     if (softReference != null) {
       result = softReference.get();

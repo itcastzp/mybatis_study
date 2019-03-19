@@ -23,7 +23,7 @@ import org.apache.ibatis.cache.Cache;
 
 /**
  * FIFO (first in, first out) cache decorator.
- *
+ *队列型缓存实现
  * @author Clinton Begin
  */
 public class FifoCache implements Cache {
@@ -79,6 +79,10 @@ public class FifoCache implements Cache {
     return null;
   }
 
+  /**
+   * 核心代码循环key集合
+   * @param key
+   */
   private void cycleKeyList(Object key) {
     keyList.addLast(key);
     if (keyList.size() > size) {
