@@ -195,6 +195,12 @@
 
     <!-- Test dependencies -->
     <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>5.1.25</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <version>5.3.2</version>
@@ -242,13 +248,22 @@
       <version>2.0</version>
       <scope>test</scope>
     </dependency>
-    <!-- postgresql driver is required to run the refcursor tests -->
+    <!-- https://mvnrepository.com/artifact/com.alibaba/druid -->
     <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>druid</artifactId>
+      <version>1.1.14</version>
+    </dependency>
+
+
+
+    <!-- postgresql driver is required to run the refcursor tests -->
+ <!--   <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>42.2.5</version>
       <scope>test</scope>
-    </dependency>
+    </dependency>-->
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>

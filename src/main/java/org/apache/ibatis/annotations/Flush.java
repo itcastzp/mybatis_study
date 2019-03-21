@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 /**
  * The maker annotation that invoke a flush statements via Mapper interface.
- *
+ * 通过Mapper接口调用flush语句。
  * @since 3.3.0
  * @author Kazuki Shimizu
  */
