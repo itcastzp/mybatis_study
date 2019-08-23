@@ -775,6 +775,7 @@ public class Configuration {
    * Parses all the unprocessed statement nodes in the cache. It is recommended
    * to call this method once all the mappers are added as it provides fail-fast
    * statement validation.
+   * 解析缓存中的所有未处理语句节点。一旦添加了所有映射器，建议 调用此方法，因为它提供了fail-fast  语句验证。
    */
   protected void buildAllStatements() {
     parsePendingResultMaps();

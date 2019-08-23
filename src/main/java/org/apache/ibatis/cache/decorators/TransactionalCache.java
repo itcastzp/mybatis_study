@@ -26,6 +26,12 @@ import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
 
 /**
+ * 二级缓存事务缓冲区。
+ * <p>
+ *     此类包含在会话期间要添加到二级缓存的所有缓存条目。
+ *     如果会话被回滚，则在调用提交时将条目发送到缓存。
+ *     已添加阻止缓存支持。因此，任何返回缓存未命中的get（）都将跟随put（），因此可以释放与该键关联的任何锁。
+ * </p>
  * The 2nd level cache transactional buffer.
  * <p>
  * This class holds all cache entries that are to be added to the 2nd level cache during a Session.

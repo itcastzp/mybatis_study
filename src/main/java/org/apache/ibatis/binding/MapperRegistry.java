@@ -23,10 +23,13 @@ import java.util.Set;
 
 import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
 import org.apache.ibatis.io.ResolverUtil;
+import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 
 /**
+ * 所有的Mapper注册类，完成Mapper接口的注册，解析，与设置。
+ *
  * @author Clinton Begin
  * @author Eduardo Macarron
  * @author Lasse Voss
@@ -34,6 +37,11 @@ import org.apache.ibatis.session.SqlSession;
 public class MapperRegistry {
 
   private final Configuration config;
+  /**
+   * Configuration中就只有唯一的这个mapper注册器
+   * 所有注册且解析好的mapper接口全在此集合中，key为mapper的类文件，
+   * value即为每个mapper的代理类MapperProxy
+   */
   private final Map<Class<?>, MapperProxyFactory<?>> knownMappers = new HashMap<>();
 
   public MapperRegistry(Configuration config) {
@@ -57,6 +65,13 @@ public class MapperRegistry {
     return knownMappers.containsKey(type);
   }
 
+  /**
+   * 单个的的mapper解析并加入到
+   * @see  Configuration#addMappedStatement(MappedStatement) 集合中，
+   *
+   * @param type
+   * @param <T>
+   */
   public <T> void addMapper(Class<T> type) {
     if (type.isInterface()) {
       if (hasMapper(type)) {
@@ -93,6 +108,7 @@ public class MapperRegistry {
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
     resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
     Set<Class<? extends Class<?>>> mapperSet = resolverUtil.getClasses();
+    //注册所有的mapper接口，以及方法。
     for (Class<?> mapperClass : mapperSet) {
       addMapper(mapperClass);
     }

@@ -33,14 +33,15 @@ import org.apache.ibatis.cache.CacheException;
  * <p>
  * 简单而低效的EhCache版BlockingCache装饰器。
  * 当在缓存中找不到元素时，它会设置对缓存键的锁定。
- * 这样，其他线程将等到此元素被填充而不是命中数据库。
+ * 这样，其他线程将等到此元素被填充而不是命中数据库。也可称值为阻塞缓存。
  * <p>
  *
  * @author Eduardo Macarron
  */
 public class BlockingCache implements Cache {
-
+    //超时时间
     private long timeout;
+    //缓存代理对象，需要被增强的类。
     private final Cache delegate;
     //创建一个同步的hashmap存放缓存
     private final ConcurrentHashMap<Object, ReentrantLock> locks;
@@ -65,6 +66,7 @@ public class BlockingCache implements Cache {
         try {
             delegate.putObject(key, value);
         } finally {
+            //每次放入一个对象时，就用key取获取同步map中的锁，如果锁是当前线程独占，那么释放改锁
             releaseLock(key);
         }
     }
@@ -103,6 +105,7 @@ public class BlockingCache implements Cache {
     }
 
     private void acquireLock(Object key) {
+        //从lockMap中获取改key的锁，如果null，就创建一个新锁。
         Lock lock = getLockForKey(key);
         if (timeout > 0) {
             try {

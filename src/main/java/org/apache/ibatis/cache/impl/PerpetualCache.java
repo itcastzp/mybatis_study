@@ -24,6 +24,7 @@ import org.apache.ibatis.cache.CacheException;
 import org.apache.ibatis.cache.CacheKey;
 
 /**永久缓存对象
+ * 真正的缓存类。
  * 缓存的实现类。
  * @author Clinton Begin
  */

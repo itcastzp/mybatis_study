@@ -197,7 +197,7 @@ public class XMLMapperBuilder extends BaseBuilder {
       }
     }
   }
-
+  //设置mapper.xml中缓存标签配置值。
   private void cacheElement(XNode context) {
     if (context != null) {
       String type = context.getStringAttribute("type", "PERPETUAL");
@@ -206,6 +206,7 @@ public class XMLMapperBuilder extends BaseBuilder {
       Class<? extends Cache> evictionClass = typeAliasRegistry.resolveAlias(eviction);
       Long flushInterval = context.getLongAttribute("flushInterval");
       Integer size = context.getIntAttribute("size");
+      //由此可见默认开启读写模式，即使用序列化缓存。如果设置只读，则不开启序列化缓存
       boolean readWrite = !context.getBooleanAttribute("readOnly", false);
       boolean blocking = context.getBooleanAttribute("blocking", false);
       Properties props = context.getChildrenAsProperties();

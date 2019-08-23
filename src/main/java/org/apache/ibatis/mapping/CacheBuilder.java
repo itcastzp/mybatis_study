@@ -16,10 +16,7 @@
 package org.apache.ibatis.mapping;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import org.apache.ibatis.builder.InitializingObject;
 import org.apache.ibatis.cache.Cache;
@@ -41,7 +38,15 @@ public class CacheBuilder {
   private final String id;
   private Class<? extends Cache> implementation;
   private final List<Class<? extends Cache>> decorators;
+
+  /**
+   * 保留的缓存大小。
+   */
   private Integer size;
+
+  /**
+   * 缓存清除间隔时间。
+   */
   private Long clearInterval;
   private boolean readWrite;
   private Properties properties;
@@ -90,6 +95,7 @@ public class CacheBuilder {
   }
 
   public Cache build() {
+    //首先设置了默认的缓存为永久缓存，perpetualCache 以及默认的包装缓存为LRUcache;
     setDefaultImplementations();
     Cache cache = newBaseCacheInstance(implementation, id);
     setCacheProperties(cache);
@@ -100,12 +106,32 @@ public class CacheBuilder {
         setCacheProperties(cache);
       }
       cache = setStandardDecorators(cache);
-    } else if (!LoggingCache.class.isAssignableFrom(cache.getClass())) {
+    }
+    //如果是进行了自定义的缓存类,只要不是从loggingcache分配的缓存，不是继承或实现。
+    // 意思就是只要不是loggingcache的子类那么就将缓存包装一个记录日志的缓存。
+    else if (!LoggingCache.class.isAssignableFrom(cache.getClass())) {
       cache = new LoggingCache(cache);
     }
     return cache;
   }
 
+  public static void main(String[] args) {
+    //左为父类，或接口 右边为子类，或者本身或者子接口；都为true;
+    System.out.println(LoggingCache.class.isAssignableFrom(Object.class));
+    System.out.println(LoggingCache.class.isAssignableFrom(LoggingCache.class));
+    System.out.println(Object.class.isAssignableFrom(Object.class));
+    System.out.println(LoggingCache.class.isAssignableFrom(LruCache.class));
+    System.out.println(Object .class.isAssignableFrom(LoggingCache.class));
+    System.out.println(Cache.class.isAssignableFrom(LruCache.class));
+    System.out.println(Cache.class.isAssignableFrom(LoggingCache.class));
+    System.out.println(Collection.class.isAssignableFrom(List.class));
+    System.out.println(Collection.class.isAssignableFrom(ArrayList.class));
+    System.out.println(List.class.isAssignableFrom(ArrayList.class));
+    System.out.println(List.class.isAssignableFrom(AbstractList.class));
+    System.out.println(List.class.isAssignableFrom(AbstractCollection.class));//false
+    System.out.println(List.class.isAssignableFrom(AbstractSequentialList.class));//true
+
+  }
   private void setDefaultImplementations() {
     if (implementation == null) {
       implementation = PerpetualCache.class;
@@ -115,21 +141,34 @@ public class CacheBuilder {
     }
   }
 
+  /**
+   * 设置一些标准的缓存装饰，通过cache的元数据，进行反射调用设置对应属性
+   * @param cache
+   * @return
+   */
   private Cache setStandardDecorators(Cache cache) {
     try {
+      //设置了缓存的大小，能设置大小的缓存包装类有，lru,fifo。
       MetaObject metaCache = SystemMetaObject.forObject(cache);
       if (size != null && metaCache.hasSetter("size")) {
         metaCache.setValue("size", size);
       }
+      //如果刷新间隔不为null，就是开启了计划过期缓存，这种缓存一定时间后过期。
+      //这个间隔值，从flushInterval属性中获取，如果没有设置，那么值为null。也就不开启过期缓存
+      // @link org.apache.ibatis.builder.xml.XMLMapperBuilder#cacheElement
       if (clearInterval != null) {
         cache = new ScheduledCache(cache);
         ((ScheduledCache) cache).setClearInterval(clearInterval);
       }
+      //如果readOnly的属性设置为true,那么不开启序列化缓存。序列化缓存将对象保存为序列化的对象，
       if (readWrite) {
         cache = new SerializedCache(cache);
       }
+      //默认为所有缓存加上日志功能
       cache = new LoggingCache(cache);
+      //还加上同步缓存的功能。
       cache = new SynchronizedCache(cache);
+      //默认为false。
       if (blocking) {
         cache = new BlockingCache(cache);
       }

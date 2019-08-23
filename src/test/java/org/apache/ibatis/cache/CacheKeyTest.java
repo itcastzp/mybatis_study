@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+
 import java.util.Date;
 
 class CacheKeyTest {
@@ -50,7 +51,9 @@ class CacheKeyTest {
     assertFalse(key1.hashCode() == key2.hashCode());
     assertFalse(key1.toString().equals(key2.toString()));
   }
-
+  /*
+  * 不按顺序的相同元素的键应该也算是不同的键
+  * */
   @Test
   void shouldTestCacheKeysNotEqualDueToOrder() throws Exception {
     CacheKey key1 = new CacheKey(new Object[] { 1, "hello", null });
@@ -97,7 +100,7 @@ class CacheKeyTest {
   }
 
   @Test
-  void serializationTest() throws Exception {
+  void serializationShouldSuccessTest() throws Exception {
     CacheKey cacheKey = new CacheKey();
     cacheKey.update("serializable");
     Assertions.assertEquals(cacheKey, serialize(cacheKey));

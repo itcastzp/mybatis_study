@@ -55,6 +55,7 @@ public interface Cache {
     String getId();
 
     /**
+     * 可用用任何对象来设置key，但是同常mybatis使用个CacheKey做为缓存的Key
      * @param key   Can be any object but usually it is a {@link CacheKey}
      * @param value The result of a select.
      */

@@ -30,6 +30,8 @@ import org.apache.ibatis.cache.CacheException;
 import org.apache.ibatis.io.Resources;
 
 /**
+ * 序列化缓存
+ * 缓存中放置的都为序列化化后的对象。
  * @author Clinton Begin
  */
 public class SerializedCache implements Cache {

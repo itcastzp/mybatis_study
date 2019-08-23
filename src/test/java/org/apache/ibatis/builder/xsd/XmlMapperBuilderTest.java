@@ -34,7 +34,7 @@ class XmlMapperBuilderTest {
   void mappedStatementWithOptions() throws Exception {
     // System.setProperty(XPathParser.KEY_USE_XSD, "true");
     Configuration configuration = new Configuration();
-    String resource = "org/apache/ibatis/builder/xsd/AuthorMapper.xml";
+    String resource = "org/apache/ibatis/builder/AuthorMapper.xml";
     try (InputStream inputStream = Resources.getResourceAsStream(resource)) {
       XMLMapperBuilder builder = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
       builder.parse();

@@ -54,6 +54,7 @@ public class FifoCache implements Cache {
 
   @Override
   public void putObject(Object key, Object value) {
+    //当放入的缓存数量超过队列的大小时，队列会删除最老的缓存。默认大小为1024个。
     cycleKeyList(key);
     delegate.putObject(key, value);
   }

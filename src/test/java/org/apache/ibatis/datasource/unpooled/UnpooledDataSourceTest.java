@@ -17,16 +17,42 @@ package org.apache.ibatis.datasource.unpooled;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.sql.Driver;
-import java.sql.DriverManager;
+import java.sql.*;
 import java.util.Enumeration;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class UnpooledDataSourceTest {
+
+
+  @Test
+  public void  will_not_work() throws ClassNotFoundException, SQLException, MalformedURLException {
+    URL u = new URL("jar:file:/path/to/pgjdbc2.jar!/");
+    String classname = "org.postgresql.Driver";
+    URLClassLoader ucl = new URLClassLoader(new URL[] { u });
+    Class.forName(classname, true, ucl);
+    DriverManager.getConnection("jdbc:postgresql://host/db", "user", "pw");
+    // That will throw SQLException: No suitable driver
+  }
+  @Test
+  public void will_work() throws MalformedURLException, ClassNotFoundException, IllegalAccessException, InstantiationException, SQLException {
+    URL u = new URL("jar:file:/path/to/pgjdbc2.jar!/");
+    String classname = "org.postgresql.Driver";
+    URLClassLoader ucl = new URLClassLoader(new URL[] { u });
+    Driver d = (Driver)Class.forName(classname, true, ucl).newInstance();
+    DriverManager.registerDriver(new DriverShim(d));
+   DriverManager.getConnection("jdbc:postgresql://host/db", "user", "pw");
+    // Success!
+  }
+
+
 
   @Test
   void shouldNotRegisterTheSameDriverMultipleTimes() throws Exception {
@@ -66,4 +92,46 @@ class UnpooledDataSourceTest {
     return count;
   }
 
+  private class DriverShim implements Driver {
+    private Driver proxy;
+    public DriverShim(Driver d) {
+      this.proxy = d;
+    }
+
+    @Override
+    public Connection connect(String url, Properties info) throws SQLException {
+      return proxy.connect(url, info);
+    }
+
+    @Override
+    public boolean acceptsURL(String url) throws SQLException {
+      return this.acceptsURL(url);
+    }
+
+    @Override
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
+      return this.getPropertyInfo(url, info);
+    }
+
+    @Override
+    public int getMajorVersion() {
+      return this.getMajorVersion();
+    }
+
+    @Override
+    public int getMinorVersion() {
+      return this.getMinorVersion();
+    }
+
+    @Override
+    public boolean jdbcCompliant() {
+      return this.jdbcCompliant();
+    }
+
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+      return this.getParentLogger();
+    }
+
+  }
 }

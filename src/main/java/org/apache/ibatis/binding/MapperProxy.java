@@ -27,6 +27,7 @@ import org.apache.ibatis.reflection.ExceptionUtil;
 import org.apache.ibatis.session.SqlSession;
 
 /**
+ * Mapper代理对象本体
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
@@ -42,13 +43,16 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     this.mapperInterface = mapperInterface;
     this.methodCache = methodCache;
   }
-
+//  具体的增强方法
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+//      如果对象为Object的方法。那么不做代理，
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
-      } else if (isDefaultMethod(method)) {
+      }
+//      如果是接口中的默认方法。那就代理默认方法
+      else if (isDefaultMethod(method)) {
         return invokeDefaultMethod(proxy, method, args);
       }
     } catch (Throwable t) {
@@ -78,6 +82,8 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   }
 
   /**
+   * 直接移植了jdk1.8中对接口定义的默认方法的判定。为什么不直接调用1.8中的java.lang.reflect.Method#isDefault()
+   * 这里猜想是对版本的兼容问题。1，7没有这种方法所以使用这个来兼容前面的版本！
    * Backport of java.lang.reflect.Method#isDefault()
    */
   private boolean isDefaultMethod(Method method) {

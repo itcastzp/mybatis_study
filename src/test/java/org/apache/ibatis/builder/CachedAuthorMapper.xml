@@ -22,7 +22,7 @@
 
 <mapper namespace="org.apache.ibatis.builder.CachedAuthorMapper">
 
-  <cache readOnly="true"/>
+  <cache readOnly="true"  />
 
   <select id="selectAllAuthors"
           resultType="org.apache.ibatis.domain.blog.Author">

@@ -22,6 +22,8 @@ import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
 
 /**
+ * 带有日志功能的缓存。
+ * 显示缓存命中率的日志。
  * @author Clinton Begin
  */
 public class LoggingCache implements Cache {
@@ -88,7 +90,7 @@ public class LoggingCache implements Cache {
   public boolean equals(Object obj) {
     return delegate.equals(obj);
   }
-
+  //获得命中率
   private double getHitRatio() {
     return (double) hits / (double) requests;
   }

@@ -23,7 +23,7 @@ import org.apache.ibatis.cache.Cache;
 
 /**
  * Lru (least recently used) cache decorator.
- *
+ *最近最少使用缓存。设置大小。缓存最近使用的对象
  * @author Clinton Begin
  */
 public class LruCache implements Cache {
@@ -48,6 +48,7 @@ public class LruCache implements Cache {
   }
 
   public void setSize(final int size) {
+    //注意随机顺序性的链表，然后每次调用get时会把get的键放到最末尾，作为最近使用的元素。
     keyMap = new LinkedHashMap<Object, Object>(size, .75F, true) {
       private static final long serialVersionUID = 4267176411845948333L;
 

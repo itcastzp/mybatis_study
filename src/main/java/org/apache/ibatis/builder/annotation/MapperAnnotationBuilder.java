@@ -146,7 +146,12 @@ public class MapperAnnotationBuilder {
     parsePendingMethods();
   }
 
+  /**
+   * 解析待定方法
+   *
+   */
   private void parsePendingMethods() {
+    //取出未完成的方法集合，加锁，进行处理，然后删除。
     Collection<MethodResolver> incompleteMethods = configuration.getIncompleteMethods();
     synchronized (incompleteMethods) {
       Iterator<MethodResolver> iter = incompleteMethods.iterator();
@@ -307,6 +312,7 @@ public class MapperAnnotationBuilder {
       Integer timeout = null;
       StatementType statementType = StatementType.PREPARED;
       ResultSetType resultSetType = null;
+      //通过mapper方法获取注解 UNKNOWN, INSERT, UPDATE, DELETE, SELECT, FLUSH;
       SqlCommandType sqlCommandType = getSqlCommandType(method);
       boolean isSelect = sqlCommandType == SqlCommandType.SELECT;
       boolean flushCache = !isSelect;

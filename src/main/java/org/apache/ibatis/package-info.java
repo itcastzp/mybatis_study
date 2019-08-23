@@ -15,5 +15,6 @@
  */
 /**
  * The MyBatis data mapper framework makes it easier to use a relational database with object-oriented applications.
+ * MyBatis数据映射器框架使关系数据库与面向对象的应用程序的使用变得更加容易。
  */
 package org.apache.ibatis;

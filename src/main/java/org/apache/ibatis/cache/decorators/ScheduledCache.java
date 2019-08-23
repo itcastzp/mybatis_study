@@ -69,6 +69,7 @@ public class ScheduledCache implements Cache {
 
   @Override
   public void clear() {
+    //当触发清除后，重置，上一次删除时间为当前时间。
     lastClear = System.currentTimeMillis();
     delegate.clear();
   }

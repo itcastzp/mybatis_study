@@ -34,6 +34,7 @@ import org.apache.ibatis.scripting.LanguageDriver;
 import org.apache.ibatis.session.Configuration;
 
 /**
+ * mapper.xml的statement解析器
  * @author Clinton Begin
  */
 public class XMLStatementBuilder extends BaseBuilder {

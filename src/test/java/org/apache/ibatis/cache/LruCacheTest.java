@@ -31,6 +31,7 @@ class LruCacheTest {
     }
     assertEquals(0, cache.getObject(0));
     cache.putObject(5, 5);
+    cache.putObject(6, 6);
     assertNull(cache.getObject(1));
     assertEquals(5, cache.getSize());
   }
