@@ -38,16 +38,12 @@ import org.apache.ibatis.reflection.MetaClass;
 import org.apache.ibatis.reflection.ReflectorFactory;
 import org.apache.ibatis.reflection.factory.ObjectFactory;
 import org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory;
-import org.apache.ibatis.session.AutoMappingBehavior;
-import org.apache.ibatis.session.AutoMappingUnknownColumnBehavior;
-import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.session.ExecutorType;
-import org.apache.ibatis.session.LocalCacheScope;
+import org.apache.ibatis.session.*;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 
 /**
- * 解析
+ * 解析Mybatis-config.xml
  *
  * @author Clinton Begin
  * @author Kazuki Shimizu
@@ -92,6 +88,10 @@ public class XMLConfigBuilder extends BaseBuilder {
     this.parser = parser;
   }
 
+  /**
+   * @see  SqlSessionFactoryBuilder#build(Reader, String, Properties)
+   * @return
+   */
   public Configuration parse() {
     if (parsed) {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
@@ -107,21 +107,25 @@ public class XMLConfigBuilder extends BaseBuilder {
    */
   private void parseConfiguration(XNode root) {
     try {
-      //issue #117 read properties first
+      //issue #117 read properties first https://github.com/mybatis/mybatis-3/issues/117
       propertiesElement(root.evalNode("properties"));
       Properties settings = settingsAsProperties(root.evalNode("settings"));
       loadCustomVfs(settings);
+      //自定义日志的实现类的注册
       loadCustomLogImpl(settings);
       typeAliasesElement(root.evalNode("typeAliases"));
+      //解析Mybatis插件
       pluginElement(root.evalNode("plugins"));
       objectFactoryElement(root.evalNode("objectFactory"));
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
+      //配置的一些设置
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
       environmentsElement(root.evalNode("environments"));
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
       typeHandlerElement(root.evalNode("typeHandlers"));
+      //解析mapper标签
       mapperElement(root.evalNode("mappers"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
@@ -362,13 +366,25 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+    /**
+     * mybatis-config.xml中配置的Mapper属性：
+ *               一种：包扫描
+ *           另一种:单个Mapper接口一个一个的显示设置。
+     *
+     * @param parent
+     * @throws Exception
+     */
   private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        //如果是用package，这种就是典型的包扫描方式注册mapper
         if ("package".equals(child.getName())) {
           String mapperPackage = child.getStringAttribute("name");
+          //扫描，解析，注册，一体化全部处理完。
           configuration.addMappers(mapperPackage);
-        } else {
+        }
+        //一个一个配置mapper的这种。两者只可选一种。
+        else {
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");

@@ -65,6 +65,7 @@ import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.builder.CacheRefResolver;
 import org.apache.ibatis.builder.IncompleteElementException;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.apache.ibatis.builder.xml.XMLConfigBuilder;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
@@ -82,6 +83,7 @@ import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.mapping.StatementType;
 import org.apache.ibatis.parsing.PropertyParser;
+import org.apache.ibatis.parsing.XNode;
 import org.apache.ibatis.reflection.TypeParameterResolver;
 import org.apache.ibatis.scripting.LanguageDriver;
 import org.apache.ibatis.session.Configuration;
@@ -92,16 +94,34 @@ import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.UnknownTypeHandler;
 
 /**
+ * Mapper接口上的注解的解析与注册
+ * 分为两类注解，一类为sql上的注解如：Select|Insert|Update|Delete
+ * 另一类为Provider的注解，
+ *
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
+
 public class MapperAnnotationBuilder {
-
+  /**
+   * mapper上的Method上的sql语句注解set集合，只有四种：Select|Insert|Update|Delete
+   */
   private static final Set<Class<? extends Annotation>> SQL_ANNOTATION_TYPES = new HashSet<>();
+  /**
+   * mapper上的method的provider注解有四种：SelectProvider|InsertProvider|UpdateProvider|DeleteProvider
+   */
   private static final Set<Class<? extends Annotation>> SQL_PROVIDER_ANNOTATION_TYPES = new HashSet<>();
-
+  /***
+   * 传递的唯一的 Configuration
+   */
   private final Configuration configuration;
+  /**
+   * mapper构建的辅助类。
+   */
   private final MapperBuilderAssistant assistant;
+  /**
+   * 待解析的mapper接口的Class对象
+   */
   private final Class<?> type;
 
   static {
@@ -123,19 +143,31 @@ public class MapperAnnotationBuilder {
     this.type = type;
   }
 
+  /**注解builder的解析 + XML方式的Mapper的解析与注册，或者组合解析。一边注解，一边xml。
+   * @see org.apache.ibatis.binding.MapperRegistry#addMapper(Class)
+   */
   public void parse() {
+    //interface xxx.xxx.xxx
     String resource = type.toString();
+    //如果该mapper已经被加载过了，就不行解析!
     if (!configuration.isResourceLoaded(resource)) {
+      //使用XMLMapperBuilder解析带有mapper*.xml的mapper由此看出，是先进行XML的解析，然后再试注解的解析。
       loadXmlResource();
+      //将interface xxx.xxx.xxx 加入到已载入的资源集合中
       configuration.addLoadedResource(resource);
+      //设置当前mapper接口的类名，为当前辅助类的命名空间
       assistant.setCurrentNamespace(type.getName());
+      //解析Mapper接口上@CacheNamespace缓存注解，并进行缓存相关的设置与初始化！
       parseCache();
+      //解析Mapper接口上的引用型缓存注解@CacheNamespaceRef,并进行缓存的设置。就是重用其他Mapper接口上的缓存。
       parseCacheRef();
       Method[] methods = type.getMethods();
       for (Method method : methods) {
         try {
-          // issue #237
+          // issue #237 see https://github.com/mybatis/mybatis-3/issues/237
+          //jdk1.8的接口对于泛型会在子接口中生成同名方法，但是这个方法会是bridge，所以剔除。
           if (!method.isBridge()) {
+            //进行Mapper接口方法的解析。此种可以解析XML中未配置的Method，可以将Mapper接口上的方法解析，
             parseStatement(method);
           }
         } catch (IncompleteElementException e) {
@@ -143,6 +175,7 @@ public class MapperAnnotationBuilder {
         }
       }
     }
+    //从解析未完成的集合中取出每一个，再次解析。
     parsePendingMethods();
   }
 
@@ -151,7 +184,7 @@ public class MapperAnnotationBuilder {
    *
    */
   private void parsePendingMethods() {
-    //取出未完成的方法集合，加锁，进行处理，然后删除。
+    //取出未完成的方法集合，加锁，进行处理，如果再出异常那么这些mapper中的方法还是丢失的。
     Collection<MethodResolver> incompleteMethods = configuration.getIncompleteMethods();
     synchronized (incompleteMethods) {
       Iterator<MethodResolver> iter = incompleteMethods.iterator();
@@ -170,7 +203,11 @@ public class MapperAnnotationBuilder {
     // Spring may not know the real resource name so we check a flag
     // to prevent loading again a resource twice
     // this flag is set at XMLMapperBuilder#bindMapperForNamespace
+    //Spring可能不知道真正的资源名称所以我们检查一个标志
+    // 以防止再次加载资源两次
+    // 这个标志是在XMLMapperBuilder设置的＃bindMapperForNamespace
     if (!configuration.isResourceLoaded("namespace:" + type.getName())) {
+      //xml资源名称已mapper接口名作为前缀，以xml结尾。通过mapperbuilder进行解析。
       String xmlResource = type.getName().replace('.', '/') + ".xml";
       // #1347
       InputStream inputStream = type.getResourceAsStream("/" + xmlResource);
@@ -189,16 +226,31 @@ public class MapperAnnotationBuilder {
     }
   }
 
+  /**
+   * 这个缓存相关的属性实在mybatis-config.xml中配置的properties标签。在解析xml中时，就进行了属性的解析与设置。
+   * @see XMLConfigBuilder#parseConfiguration(XNode)
+   * @see Configuration#setVariables(Properties)
+   * CacheNamespace这个注解在mapper接口上进行缓存的设置，
+   */
   private void parseCache() {
+    //获取Mapper接口上的CacheNamespace注解
     CacheNamespace cacheDomain = type.getAnnotation(CacheNamespace.class);
     if (cacheDomain != null) {
+      //获取缓存大小值，默认缓存大小1024，刷新间隔时间也就是缓存过期时间，如果还没过期继续取缓存中的数据，否则取新数据。
       Integer size = cacheDomain.size() == 0 ? null : cacheDomain.size();
+      //不设置过期时间就是缓存不过期。默认不设置为0
       Long flushInterval = cacheDomain.flushInterval() == 0 ? null : cacheDomain.flushInterval();
+      //取出注解上的properties属性
       Properties props = convertToProperties(cacheDomain.properties());
       assistant.useNewCache(cacheDomain.implementation(), cacheDomain.eviction(), flushInterval, size, cacheDomain.readWrite(), cacheDomain.blocking(), props);
     }
   }
 
+  /***
+   *将注解上的properties注解属性转换为properties对象保存属性
+   * @param properties
+   * @return
+   */
   private Properties convertToProperties(Property[] properties) {
     if (properties.length == 0) {
       return null;
@@ -211,11 +263,17 @@ public class MapperAnnotationBuilder {
     return props;
   }
 
+  /**
+   * 解析引用缓存
+   */
   private void parseCacheRef() {
     CacheNamespaceRef cacheDomainRef = type.getAnnotation(CacheNamespaceRef.class);
     if (cacheDomainRef != null) {
+      //以全类名设置的需要重用的(引用的)那个缓存mapper的全类名。
       Class<?> refType = cacheDomainRef.value();
+      //以字符串设置的mapper的命名空间名称
       String refName = cacheDomainRef.name();
+      //@CacheNamespaceRef注解设置一种即可，可设置类名，可设置字符串名称型类名。二者选一。
       if (refType == void.class && refName.isEmpty()) {
         throw new BuilderException("Should be specified either value() or name() attribute in the @CacheNamespaceRef");
       }
@@ -226,6 +284,8 @@ public class MapperAnnotationBuilder {
       try {
         assistant.useCacheRef(namespace);
       } catch (IncompleteElementException e) {
+        //出现异常，那么加入到未完成的缓存集合中，当调用Configuration的getMapperStatement*时，
+        // 会进行所有的ms构建，然后就会处理这些未完成的集合
         configuration.addIncompleteCacheRef(new CacheRefResolver(assistant, namespace));
       }
     }
@@ -301,11 +361,18 @@ public class MapperAnnotationBuilder {
     return null;
   }
 
+  /**
+   * 解析statement也就是解析Mapper接口中的每个方法！
+   * @param method
+   */
   void parseStatement(Method method) {
     Class<?> parameterTypeClass = getParameterType(method);
+    //获取sql语言的解析驱动
     LanguageDriver languageDriver = getLanguageDriver(method);
+    //取出method上的注解的sql语句以及Sql类型
     SqlSource sqlSource = getSqlSourceFromAnnotations(method, parameterTypeClass, languageDriver);
     if (sqlSource != null) {
+      //可选的配置
       Options options = method.getAnnotation(Options.class);
       final String mappedStatementId = type.getName() + "." + method.getName();
       Integer fetchSize = null;
@@ -358,7 +425,7 @@ public class MapperAnnotationBuilder {
       } else if (isSelect) {
         resultMapId = parseResultMap(method);
       }
-
+      //最后将构建的MapperStatement添加到Configuration的MappperStatementS集合中。
       assistant.addMappedStatement(
           mappedStatementId,
           sqlSource,
@@ -395,7 +462,7 @@ public class MapperAnnotationBuilder {
     }
     return assistant.getLanguageDriver(langClass);
   }
-
+  //获取方法上的参数类型。
   private Class<?> getParameterType(Method method) {
     Class<?> parameterType = null;
     Class<?>[] parameterTypes = method.getParameterTypes();
@@ -469,10 +536,20 @@ public class MapperAnnotationBuilder {
     return returnType;
   }
 
+  /***
+   * 取出Mapper接口方法上的sqlsource
+   * @param method
+   * @param parameterType
+   * @param languageDriver
+   * @return
+   */
   private SqlSource getSqlSourceFromAnnotations(Method method, Class<?> parameterType, LanguageDriver languageDriver) {
     try {
+      //取出方法上的Sql型注解
       Class<? extends Annotation> sqlAnnotationType = getSqlAnnotationType(method);
+      //取出方法山的SqlProvider型注解
       Class<? extends Annotation> sqlProviderAnnotationType = getSqlProviderAnnotationType(method);
+      //由此看出，同一个Method只可以使用一种注解，要么sql,要么provider
       if (sqlAnnotationType != null) {
         if (sqlProviderAnnotationType != null) {
           throw new BindingException("You cannot supply both a static SQL and SqlProvider to method named " + method.getName());
@@ -523,6 +600,11 @@ public class MapperAnnotationBuilder {
     return SqlCommandType.valueOf(type.getSimpleName().toUpperCase(Locale.ENGLISH));
   }
 
+  /**
+   * 返回该方法的Sql注解的种类
+   * @param method
+   * @return
+   */
   private Class<? extends Annotation> getSqlAnnotationType(Method method) {
     return chooseAnnotationType(method, SQL_ANNOTATION_TYPES);
   }

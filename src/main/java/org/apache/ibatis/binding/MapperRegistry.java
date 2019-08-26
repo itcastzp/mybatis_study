@@ -28,7 +28,7 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 
 /**
- * 所有的Mapper注册类，完成Mapper接口的注册，解析，与设置。
+ * 所有的Mapper注册类，完成Mapper接口的注册，解析，与设置。以及mapper代理的获取。
  *
  * @author Clinton Begin
  * @author Eduardo Macarron
@@ -41,6 +41,8 @@ public class MapperRegistry {
    * Configuration中就只有唯一的这个mapper注册器
    * 所有注册且解析好的mapper接口全在此集合中，key为mapper的类文件，
    * value即为每个mapper的代理类MapperProxy
+   * 执行mappe接口方法，也是从此集合拿出代理接口来，
+   * 然后执行CRUD。
    */
   private final Map<Class<?>, MapperProxyFactory<?>> knownMappers = new HashMap<>();
 
@@ -48,7 +50,13 @@ public class MapperRegistry {
     this.config = config;
   }
 
-  @SuppressWarnings("unchecked")
+  /**
+   * mapper接口，代理的获取。
+   * @param type
+   * @param sqlSession
+   * @param <T>
+   * @return
+   */
   public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
     final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
     if (mapperProxyFactory == null) {
@@ -68,12 +76,13 @@ public class MapperRegistry {
   /**
    * 单个的的mapper解析并加入到
    * @see  Configuration#addMappedStatement(MappedStatement) 集合中，
-   *
+   * @see  #addMappers(String, Class)
    * @param type
    * @param <T>
    */
   public <T> void addMapper(Class<T> type) {
     if (type.isInterface()) {
+      //如果已知的mapper集合中含有该mapper类型，那么不做绑定，说明已经绑定过了。
       if (hasMapper(type)) {
         throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
       }
@@ -83,6 +92,7 @@ public class MapperRegistry {
         // It's important that the type is added before the parser is run
         // otherwise the binding may automatically be attempted by the
         // mapper parser. If the type is already known, it won't try.
+//        在解析器运行之前添加类型非常重要，否则映射器解析器可能会自动尝试绑定。如果类型已知，则不会尝试
         MapperAnnotationBuilder parser = new MapperAnnotationBuilder(config, type);
         parser.parse();
         loadCompleted = true;

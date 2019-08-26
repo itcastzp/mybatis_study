@@ -89,7 +89,7 @@ public class VendorDatabaseIdProvider implements DatabaseIdProvider {
       }
     }
   }
-
+  //静态内部类的安全单例模式，不使用时就不加载，懒加载。节省资源。
   private static class LogHolder {
     private static final Log log = LogFactory.getLog(VendorDatabaseIdProvider.class);
   }

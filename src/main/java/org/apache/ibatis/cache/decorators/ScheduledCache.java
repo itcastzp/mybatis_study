@@ -26,6 +26,9 @@ import org.apache.ibatis.cache.Cache;
 public class ScheduledCache implements Cache {
 
   private final Cache delegate;
+  /***
+   * 缓存的过期时间，也为刷新时间。
+   */
   protected long clearInterval;
   protected long lastClear;
 
@@ -91,6 +94,7 @@ public class ScheduledCache implements Cache {
 
   /*
   * 清除陈旧的map
+  * 如果过期，那么就进行清除。
   * */
   private boolean clearWhenStale() {
     if (System.currentTimeMillis() - lastClear > clearInterval) {

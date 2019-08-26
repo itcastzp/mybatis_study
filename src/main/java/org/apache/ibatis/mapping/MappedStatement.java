@@ -15,6 +15,7 @@
  */
 package org.apache.ibatis.mapping;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +48,9 @@ public final class MappedStatement {
   private boolean flushCacheRequired;
   private boolean useCache;
   private boolean resultOrdered;
+  /**
+   * @see org.apache.ibatis.binding.MapperMethod.SqlCommand#SqlCommand(Configuration, Class, Method)
+   */
   private SqlCommandType sqlCommandType;
   private KeyGenerator keyGenerator;
   private String[] keyProperties;

@@ -32,6 +32,8 @@ import org.apache.ibatis.builder.CacheRefResolver;
 import org.apache.ibatis.builder.IncompleteElementException;
 import org.apache.ibatis.builder.ResultMapResolver;
 import org.apache.ibatis.builder.annotation.MethodResolver;
+import org.apache.ibatis.builder.xml.XMLConfigBuilder;
+import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.builder.xml.XMLStatementBuilder;
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.cache.decorators.FifoCache;
@@ -740,6 +742,10 @@ public class Configuration {
     mapperRegistry.addMappers(packageName, superType);
   }
 
+  /**
+   *@see  XMLConfigBuilder#mapperElement(XNode)
+   * @param packageName
+   */
   public void addMappers(String packageName) {
     mapperRegistry.addMappers(packageName);
   }
@@ -748,10 +754,22 @@ public class Configuration {
     mapperRegistry.addMapper(type);
   }
 
+  /**
+   * 此类只给SqlSession做调用。获取所有的Mapper接口代理类，用于CRUD操作。
+   * @param type
+   * @param sqlSession
+   * @param <T>
+   * @return
+   */
   public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
     return mapperRegistry.getMapper(type, sqlSession);
   }
 
+  /**
+   * @see  XMLMapperBuilder#bindMapperForNamespace()
+   * @param type
+   * @return
+   */
   public boolean hasMapper(Class<?> type) {
     return mapperRegistry.hasMapper(type);
   }
@@ -776,6 +794,8 @@ public class Configuration {
    * to call this method once all the mappers are added as it provides fail-fast
    * statement validation.
    * 解析缓存中的所有未处理语句节点。一旦添加了所有映射器，建议 调用此方法，因为它提供了fail-fast  语句验证。
+   *  在每次调用MapperStatements的方法，其实每次都在重新构建所有的MapperStatements
+   *
    */
   protected void buildAllStatements() {
     parsePendingResultMaps();

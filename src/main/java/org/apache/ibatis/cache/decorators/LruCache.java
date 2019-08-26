@@ -32,7 +32,6 @@ public class LruCache implements Cache {
   private final Cache delegate;
   private Map<Object, Object> keyMap;
   private Object eldestKey;
-
   public LruCache(Cache delegate) {
     this.delegate = delegate;
     setSize(1024);

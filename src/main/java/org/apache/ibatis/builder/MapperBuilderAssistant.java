@@ -102,12 +102,19 @@ public class MapperBuilderAssistant extends BaseBuilder {
     return currentNamespace + "." + base;
   }
 
+  /***
+   * 缓存引用的设置。通过mapper的类名
+   * @param namespace
+   * @return
+   */
   public Cache useCacheRef(String namespace) {
     if (namespace == null) {
       throw new BuilderException("cache-ref element requires a namespace attribute.");
     }
     try {
+      //没有解决缓存引用的标志位。报错后，该标志位为true;
       unresolvedCacheRef = true;
+      //从配置中获取该类名的缓存。如果为null说明不存在缓存。
       Cache cache = configuration.getCache(namespace);
       if (cache == null) {
         throw new IncompleteElementException("No cache for namespace '" + namespace + "' could be found.");
@@ -239,7 +246,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
     }
     return new Discriminator.Builder(configuration, resultMapping, namespaceDiscriminatorMap).build();
   }
-
+  //添加mapper下的每个statement语句。statement可以包装了mapper接口的每个CRUD方法。或者，Mapper.xml中的每个CRUD标签
   public MappedStatement addMappedStatement(
       String id,
       SqlSource sqlSource,
@@ -261,12 +268,13 @@ public class MapperBuilderAssistant extends BaseBuilder {
       String databaseId,
       LanguageDriver lang,
       String resultSets) {
-
+    //如果缓存引用没有设置好，那么也不进行statement的添加。
     if (unresolvedCacheRef) {
       throw new IncompleteElementException("Cache-ref not yet resolved");
     }
 
     id = applyCurrentNamespace(id, false);
+    //只有查询才能进行缓存，所已判断下是否是查询
     boolean isSelect = sqlCommandType == SqlCommandType.SELECT;
 
     MappedStatement.Builder statementBuilder = new MappedStatement.Builder(configuration, id, sqlSource, sqlCommandType)
@@ -283,6 +291,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
         .resultSets(resultSets)
         .resultMaps(getStatementResultMaps(resultMap, resultType, id))
         .resultSetType(resultSetType)
+         //如果属性设置了值，那么就不取默认值
         .flushCacheRequired(valueOrDefault(flushCache, !isSelect))
         .useCache(valueOrDefault(useCache, isSelect))
         .cache(currentCache);

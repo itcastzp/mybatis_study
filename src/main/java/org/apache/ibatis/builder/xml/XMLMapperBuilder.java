@@ -32,6 +32,7 @@ import org.apache.ibatis.builder.CacheRefResolver;
 import org.apache.ibatis.builder.IncompleteElementException;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.apache.ibatis.builder.ResultMapResolver;
+import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.executor.ErrorContext;
 import org.apache.ibatis.io.Resources;
@@ -89,15 +90,23 @@ public class XMLMapperBuilder extends BaseBuilder {
     this.resource = resource;
   }
 
+  /**
+   * xml方式配置的mapper解析
+   * @see MapperAnnotationBuilder#loadXmlResource
+   */
   public void parse() {
+    //如果Mapper*.xml资源还未解析或者是，注解型的还没解析，那么进行xml的解析，并且将该资源标记为
+    // namespace:xxxx.xxx.xxx
     if (!configuration.isResourceLoaded(resource)) {
       configurationElement(parser.evalNode("/mapper"));
       configuration.addLoadedResource(resource);
       bindMapperForNamespace();
     }
-
+    //解析设置未完成的结果集
     parsePendingResultMaps();
+    //解析设置未完成的缓存引用
     parsePendingCacheRefs();
+    //解析设置statments
     parsePendingStatements();
   }
 
@@ -112,11 +121,14 @@ public class XMLMapperBuilder extends BaseBuilder {
         throw new BuilderException("Mapper's namespace cannot be empty");
       }
       builderAssistant.setCurrentNamespace(namespace);
+      //与注解型的一样的套路，进行
       cacheRefElement(context.evalNode("cache-ref"));
       cacheElement(context.evalNode("cache"));
       parameterMapElement(context.evalNodes("/mapper/parameterMap"));
       resultMapElements(context.evalNodes("/mapper/resultMap"));
+      //sql片段的解析，对应mapper.xml中的sql标签
       sqlElement(context.evalNodes("/mapper/sql"));
+      //构造Statement也就是MapperStatement对象
       buildStatementFromContext(context.evalNodes("select|insert|update|delete"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing Mapper XML. The XML location is '" + resource + "'. Cause: " + e, e);
@@ -171,6 +183,9 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 再次解析statement，上次失败的。
+   */
   private void parsePendingStatements() {
     Collection<XMLStatementBuilder> incompleteStatements = configuration.getIncompleteStatements();
     synchronized (incompleteStatements) {
@@ -424,6 +439,9 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 将mapper的命名空间加到已加载的mapper中。
+   */
   private void bindMapperForNamespace() {
     String namespace = builderAssistant.getCurrentNamespace();
     if (namespace != null) {
@@ -434,11 +452,15 @@ public class XMLMapperBuilder extends BaseBuilder {
         //ignore, bound type is not required
       }
       if (boundType != null) {
+        //如果mapperRegistry不存该Mapper,那么需要加入该资源，且进行mapper的注册。
         if (!configuration.hasMapper(boundType)) {
           // Spring may not know the real resource name so we set a flag
           // to prevent loading again this resource from the mapper interface
           // look at MapperAnnotationBuilder#loadXmlResource
+          /// Spring可能不知道真正的资源名称所以我们设置一个标志,以防止从mapper接口再次加载这个资源
+          // 查看MapperAnnotationBuilder＃loadXmlResource
           configuration.addLoadedResource("namespace:" + namespace);
+          //再次进行mapper的解析注册。
           configuration.addMapper(boundType);
         }
       }

@@ -15,6 +15,7 @@
  */
 package org.apache.ibatis.logging.jdbc;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.Array;
 import java.sql.PreparedStatement;
@@ -28,7 +29,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.reflection.ArrayUtil;
 
@@ -76,6 +79,16 @@ public abstract class BaseJdbcLogger {
     EXECUTE_METHODS.add("addBatch");
   }
 
+  public static void main(String[] args) {
+    System.out.println(Arrays.toString(Arrays.stream(CacheKey.class.getDeclaredFields())
+            .map(Field::getName).toArray()));
+    Object[] a = Stream.of("1", "2", new String("2312"), new String[]{"e"}, 12, 2).toArray();
+    System.out.println(a.getClass().getComponentType());
+    System.out.println(Arrays.toString(a));
+    System.out.println(a.toString());
+
+
+  }
   protected void setColumn(Object key, Object value) {
     columnMap.put(key, value);
     columnNames.add(key);

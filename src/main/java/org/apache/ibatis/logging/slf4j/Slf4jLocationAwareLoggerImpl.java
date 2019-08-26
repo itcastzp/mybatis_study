@@ -32,7 +32,8 @@ class Slf4jLocationAwareLoggerImpl implements Log {
 
   private final LocationAwareLogger logger;
 
-  Slf4jLocationAwareLoggerImpl(LocationAwareLogger logger) {
+  Slf4jLocationAwareLoggerImpl(LocationAwareLogger logger)
+  {
     this.logger = logger;
   }
 

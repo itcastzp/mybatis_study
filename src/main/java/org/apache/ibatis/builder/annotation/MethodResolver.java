@@ -18,6 +18,7 @@ package org.apache.ibatis.builder.annotation;
 import java.lang.reflect.Method;
 
 /**
+ * Mapper的方法解析失败后后续处理的逻辑，进行再次的解析。
  * @author Eduardo Macarron
  */
 public class MethodResolver {
