@@ -207,8 +207,9 @@ public class Configuration {
 
     typeAliasRegistry.registerAlias("CGLIB", CglibProxyFactory.class);
     typeAliasRegistry.registerAlias("JAVASSIST", JavassistProxyFactory.class);
-
+    //设置默认的语言驱动为XML语言驱动。待有动态sql
     languageRegistry.setDefaultDriverClass(XMLLanguageDriver.class);
+    //再添加一个不带有动态sql的语言驱动
     languageRegistry.register(RawLanguageDriver.class);
   }
 

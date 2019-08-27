@@ -22,7 +22,10 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
-/**
+/**参数类型映射。
+ * 维护sql与对象的映射属性。
+ *
+ *
  * @author Clinton Begin
  */
 public class ParameterMapping {

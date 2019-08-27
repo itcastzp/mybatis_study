@@ -367,19 +367,19 @@ public class MapperAnnotationBuilder {
    */
   void parseStatement(Method method) {
     Class<?> parameterTypeClass = getParameterType(method);
-    //获取sql语言的解析驱动
+    //获取sql语言的解析驱动 默认为XMLLanguageDriver
     LanguageDriver languageDriver = getLanguageDriver(method);
-    //取出method上的注解的sql语句以及Sql类型
+    //从method上的注解sql构造成一个Sql源，维护了sql信息，与及一些参数的映射。
     SqlSource sqlSource = getSqlSourceFromAnnotations(method, parameterTypeClass, languageDriver);
     if (sqlSource != null) {
-      //可选的配置
+      //可选的配置注解@Options
       Options options = method.getAnnotation(Options.class);
       final String mappedStatementId = type.getName() + "." + method.getName();
       Integer fetchSize = null;
       Integer timeout = null;
       StatementType statementType = StatementType.PREPARED;
       ResultSetType resultSetType = null;
-      //通过mapper方法获取注解 UNKNOWN, INSERT, UPDATE, DELETE, SELECT, FLUSH;
+      //通过mapper方法获取注解 可能为unknown即便selectProvider那么sql命令还是select ,其他依次类推
       SqlCommandType sqlCommandType = getSqlCommandType(method);
       boolean isSelect = sqlCommandType == SqlCommandType.SELECT;
       boolean flushCache = !isSelect;
@@ -388,8 +388,10 @@ public class MapperAnnotationBuilder {
       KeyGenerator keyGenerator;
       String keyProperty = null;
       String keyColumn = null;
+      //插入或者是更新的SQL 时的主键生成逻辑-----------------
       if (SqlCommandType.INSERT.equals(sqlCommandType) || SqlCommandType.UPDATE.equals(sqlCommandType)) {
-        // first check for SelectKey annotation - that overrides everything else
+
+        //首先查询这个selectkey注解。重中之重
         SelectKey selectKey = method.getAnnotation(SelectKey.class);
         if (selectKey != null) {
           keyGenerator = handleSelectKeyAnnotation(selectKey, mappedStatementId, getParameterType(method), languageDriver);
@@ -455,11 +457,13 @@ public class MapperAnnotationBuilder {
   }
 
   private LanguageDriver getLanguageDriver(Method method) {
+    //也可以通过@Lang注解动态改变语言驱动类。
     Lang lang = method.getAnnotation(Lang.class);
     Class<? extends LanguageDriver> langClass = null;
     if (lang != null) {
       langClass = lang.value();
     }
+    //默认的语言驱动实现类，为XMLLanguageDriver
     return assistant.getLanguageDriver(langClass);
   }
   //获取方法上的参数类型。
@@ -558,6 +562,7 @@ public class MapperAnnotationBuilder {
         final String[] strings = (String[]) sqlAnnotation.getClass().getMethod("value").invoke(sqlAnnotation);
         return buildSqlSourceFromStrings(strings, parameterType, languageDriver);
       } else if (sqlProviderAnnotationType != null) {
+        //取出方法上的Provider类型，然后构造出一个ProviderSqlSource
         Annotation sqlProviderAnnotation = method.getAnnotation(sqlProviderAnnotationType);
         return new ProviderSqlSource(assistant.getConfiguration(), sqlProviderAnnotation, type, method);
       }
@@ -567,6 +572,14 @@ public class MapperAnnotationBuilder {
     }
   }
 
+  /**
+   * sql源 表示从XML文件或注释读取的映射语句的内容
+   * 构建sql源
+   * @param strings
+   * @param parameterTypeClass
+   * @param languageDriver
+   * @return
+   */
   private SqlSource buildSqlSourceFromStrings(String[] strings, Class<?> parameterTypeClass, LanguageDriver languageDriver) {
     final StringBuilder sql = new StringBuilder();
     for (String fragment : strings) {
@@ -720,16 +733,27 @@ public class MapperAnnotationBuilder {
     return args == null ? new Arg[0] : args.value();
   }
 
+  /**
+   * 处理SelectKey注解，该注解标识这这次语句执行，需要返会数据库中的主键。
+   * @param selectKeyAnnotation
+   * @param baseStatementId
+   * @param parameterTypeClass
+   * @param languageDriver
+   * @return
+   */
   private KeyGenerator handleSelectKeyAnnotation(SelectKey selectKeyAnnotation, String baseStatementId, Class<?> parameterTypeClass, LanguageDriver languageDriver) {
     String id = baseStatementId + SelectKeyGenerator.SELECT_KEY_SUFFIX;
     Class<?> resultTypeClass = selectKeyAnnotation.resultType();
     StatementType statementType = selectKeyAnnotation.statementType();
+    //vo中对应的主键的属性名，
     String keyProperty = selectKeyAnnotation.keyProperty();
+    //数据库中对应的主键的列名。
     String keyColumn = selectKeyAnnotation.keyColumn();
+    //是在前面执行，还是后面执行，针对不同的数据库有两种。比如mysql需要在前面，而oracle需要在后面
     boolean executeBefore = selectKeyAnnotation.before();
-
-    // defaults
+    // 默认不缓存。
     boolean useCache = false;
+    //不使用自动生成主键策略。
     KeyGenerator keyGenerator = NoKeyGenerator.INSTANCE;
     Integer fetchSize = null;
     Integer timeout = null;
@@ -740,7 +764,7 @@ public class MapperAnnotationBuilder {
 
     SqlSource sqlSource = buildSqlSourceFromStrings(selectKeyAnnotation.statement(), parameterTypeClass, languageDriver);
     SqlCommandType sqlCommandType = SqlCommandType.SELECT;
-
+    //添加这个需要返会主键的独立MapperStatement,id以!selectKey结尾
     assistant.addMappedStatement(id, sqlSource, statementType, sqlCommandType, fetchSize, timeout, parameterMap, parameterTypeClass, resultMap, resultTypeClass, resultSetTypeEnum,
         flushCache, useCache, false,
         keyGenerator, keyProperty, keyColumn, null, languageDriver, null);

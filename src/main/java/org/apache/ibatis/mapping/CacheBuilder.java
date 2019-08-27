@@ -32,11 +32,15 @@ import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
 
 /**
+ * 缓存建造者模式的类。负责建造缓存，以及设置缓存的属性。
+ *
  * @author Clinton Begin
  */
 public class CacheBuilder {
   private final String id;
+  //缓存的实现类，默认为perpetual类。
   private Class<? extends Cache> implementation;
+  //缓存的装饰者，默认的有LRU包装缓存
   private final List<Class<? extends Cache>> decorators;
 
   /**
@@ -94,6 +98,10 @@ public class CacheBuilder {
     return this;
   }
 
+  /**
+   * 缓存的真正构建方法。
+   * @return
+   */
   public Cache build() {
     //首先设置了默认的缓存为永久缓存，perpetualCache 以及默认的包装缓存为LRUcache;
     setDefaultImplementations();
@@ -126,6 +134,7 @@ public class CacheBuilder {
     System.out.println(Cache.class.isAssignableFrom(LoggingCache.class));
     System.out.println(Collection.class.isAssignableFrom(List.class));
     System.out.println(Collection.class.isAssignableFrom(ArrayList.class));
+    System.out.println(Collection.class.isAssignableFrom(AbstractCollection.class));
     System.out.println(List.class.isAssignableFrom(ArrayList.class));
     System.out.println(List.class.isAssignableFrom(AbstractList.class));
     System.out.println(List.class.isAssignableFrom(AbstractCollection.class));//false
@@ -150,6 +159,7 @@ public class CacheBuilder {
     try {
       //设置了缓存的大小，能设置大小的缓存包装类有，lru,fifo。
       MetaObject metaCache = SystemMetaObject.forObject(cache);
+      //通过元数据，获取是否有size的set方法，然后进行属性的设置。
       if (size != null && metaCache.hasSetter("size")) {
         metaCache.setValue("size", size);
       }
@@ -215,6 +225,7 @@ public class CacheBuilder {
         }
       }
     }
+    //如果是InitializingObject实现类或者子类，那么，就进行这种缓存的初始化操作。
     if (InitializingObject.class.isAssignableFrom(cache.getClass())) {
       try {
         ((InitializingObject) cache).initialize();
